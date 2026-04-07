@@ -24,8 +24,8 @@ function App() {
   const steps = ['Personal Info', 'Experience', 'Education', 'Skills']
 
   const handleGenerateAi = async () => {
-    if (!aiForm.apiKey || !aiForm.role || !aiForm.background) {
-      alert("Please fill in all fields including the API Key.");
+    if (!aiForm.role || !aiForm.background) {
+      alert("Please fill in all fields.");
       return;
     }
     
@@ -346,15 +346,6 @@ function App() {
                   placeholder="Briefly describe your previous roles, exact skills, or copy-paste your raw notes. We will organize it professionally."
                   value={aiForm.background}
                   onChange={e => setAiForm({...aiForm, background: e.target.value})}
-                />
-              </div>
-              <div className="full-width">
-                <label>Google Gemini API Key (Required, runs locally)</label>
-                <input 
-                  type="password" 
-                  placeholder="AIzaSy..."
-                  value={aiForm.apiKey}
-                  onChange={e => setAiForm({...aiForm, apiKey: e.target.value})}
                 />
               </div>
             </div>
