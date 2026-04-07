@@ -11,8 +11,16 @@ function App() {
     apiKey: 'AIzaSyBmARJywXgsbj8m0knGd7DXf5D-R56mExY'
   })
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isAppLoading, setIsAppLoading] = useState(true)
   const [selectedTemplate, setSelectedTemplate] = useState('modern')
   const [analysis, setAnalysis] = useState({ atsScore: 0, recruiterRating: 0, recommendations: [] })
+  
+  // High-End Initial Loader Effect
+  useState(() => {
+    const timer = setTimeout(() => setIsAppLoading(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const [resumeData, setResumeData] = useState({
     personal: { fullName: 'Shashank Bajoria', title: 'Senior Software Engineer', email: 'shashank@example.com', phone: '+1 234 567 890', location: 'San Francisco, CA', summary: 'Experienced software engineer with a passion for building scalable web applications and AI-driven solutions.' },
     experience: [
@@ -157,16 +165,29 @@ Provide ONLY the raw JSON object.`;
     setResumeData({ ...resumeData, skills: newSkills })
   }
 
+  if (isAppLoading) {
+    return (
+      <div className="loader-screen">
+        <div className="loader-box">
+          <div className="loader-logo">✨</div>
+          <h1 className="loader-text">SleekResume</h1>
+          <div className="loader-bar"><div className="loader-progress"></div></div>
+          <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '1rem', letterSpacing: '4px' }}>ELEVATING CAREERS</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-layout">
       {/* Editor Pane (Left Sidebar) */}
       <aside className="editor-pane">
-        <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <header style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1 style={{ fontSize: '1.75rem', color: 'var(--primary)' }}>SleekResume</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Build your story, one step at a time.</p>
+            <h1 style={{ fontSize: '2rem', color: 'var(--text-main)', letterSpacing: '-0.04em' }}>SleekResume</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: '500' }}>Executive Resume Engineering.</p>
           </div>
-          <button className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', background: 'linear-gradient(135deg, #8b5cf6, #d946ef)', border: 'none', boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)' }} onClick={() => setShowAiModal(true)}>
+          <button className="btn-ai-sparkle" onClick={() => setShowAiModal(true)}>
             ✨ AI Builder
           </button>
         </header>
@@ -325,19 +346,30 @@ Provide ONLY the raw JSON object.`;
 
       {/* Preview Pane (Right Sidebar) */}
       <main className="preview-pane">
-        <div style={{ marginBottom: '2rem', width: '210mm', transform: 'scale(0.9)' }}>
+        <div style={{ marginBottom: '3rem', width: '210mm', transform: 'scale(0.95)' }}>
           {analysis.atsScore > 0 && (
-            <div className="analysis-dashboard">
-              <div className="score-badge" style={{ background: analysis.atsScore >= 90 ? '#dcfce7' : '#fee2e2', color: analysis.atsScore >= 90 ? '#166534' : '#991b1b' }}>
-                ATS Score: {analysis.atsScore}%
+            <div className="analysis-dashboard-premium">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                 <div>
+                    <h2 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>Resume Intelligence Report</h2>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Benchmarked against Fortune 500 standards</p>
+                 </div>
+                 <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <div className="score-badge-premium">
+                      <span className="score-label">ATS</span>
+                      <span className="score-value">{analysis.atsScore}</span>
+                    </div>
+                    <div className="score-badge-premium">
+                      <span className="score-label">RECRUITER</span>
+                      <span className="score-value">{analysis.recruiterRating}</span>
+                    </div>
+                 </div>
               </div>
-              <div className="score-badge" style={{ background: analysis.recruiterRating >= 90 ? '#dbefe2' : '#fef9c3', color: analysis.recruiterRating >= 90 ? '#065f46' : '#854d0e' }}>
-                Recruiter Rating: {analysis.recruiterRating}%
-              </div>
+
               {analysis.recommendations.length > 0 && (
-                <div style={{ marginTop: '1rem', padding: '1rem', background: '#f1f5f9', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
-                  <strong>💡 Pro Tips to boost your score:</strong>
-                  <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
+                <div className="recommendations-box">
+                  <header>💡 STRATEGIC RECOMMENDATIONS</header>
+                  <ul className="rec-list">
                     {analysis.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
                   </ul>
                 </div>
@@ -346,7 +378,7 @@ Provide ONLY the raw JSON object.`;
           )}
         </div>
 
-        <div className={`resume-preview-container template-${selectedTemplate}`} id="resume-document">
+        <div className={`resume-preview-container-premium template-${selectedTemplate}`} id="resume-document">
           <header style={{ borderBottom: '2px solid var(--primary)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
             <h1 style={{ margin: '0', fontSize: '2.5rem', color: 'var(--text-main)', textAlign: 'left' }}>{resumeData.personal.fullName || 'YOUR NAME'}</h1>
             <p style={{ fontSize: '1.1rem', fontWeight: '500', color: 'var(--primary)', marginTop: '0.25rem' }}>{resumeData.personal.title || 'Professional Title'}</p>
