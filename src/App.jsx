@@ -11,6 +11,8 @@ function App() {
     apiKey: 'AIzaSyBmARJywXgsbj8m0knGd7DXf5D-R56mExY'
   })
   const [isGenerating, setIsGenerating] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState('modern')
+  const [analysis, setAnalysis] = useState({ atsScore: 0, recruiterRating: 0, recommendations: [] })
   const [resumeData, setResumeData] = useState({
     personal: { fullName: 'Shashank Bajoria', title: 'Senior Software Engineer', email: 'shashank@example.com', phone: '+1 234 567 890', location: 'San Francisco, CA', summary: 'Experienced software engineer with a passion for building scalable web applications and AI-driven solutions.' },
     experience: [
@@ -33,7 +35,32 @@ function App() {
     setIsGenerating(true);
     
     try {
-      const prompt = `You are a professional resume writer perfectly elevating candidates for their target role. The user is applying for: "${aiForm.role}".\nTheir rough background notes are: "${aiForm.background}".\n\nIf they have attached a PDF resume document as part of this request, read it meticulously. Elevate their past resume points to perfectly match the target role, using strong action verbs and quantifying achievements.\nPlease generate a professional resume structured strictly as JSON. No markdown backticks, just raw JSON.\nUse this format:\n{\n  "personal": { "fullName": "Their Name or Fake Name", "title": "Job Title", "email": "email@example.com", "phone": "123-456", "location": "City, ST", "summary": "A highly impactful professional summary..." },\n  "experience": [ { "id": 1, "company": "Company Name", "role": "Role", "startDate": "Mon YYYY", "endDate": "Mon YYYY", "description": "1. Improved x by y%\\n2. Developed z..." } ],\n  "education": [ { "id": 1, "school": "School Name", "degree": "Degree", "year": "YYYY" } ],\n  "skills": ["Skill1", "Skill2", "Skill3"]\n}\n\nProvide only the perfectly structured JSON object.`;
+      const prompt = `You are a world-class executive resume writer and ATS optimization expert. 
+Using the provided information on job description ("${aiForm.role}") and candidate background ("${aiForm.background}"), 
+modify the resume based on the top 10 resumes that successfully secured roles at major Fortune 500 companies in this field.
+
+CRITICAL OBJECTIVES:
+1. Create a resume that has a High ATS score (above 90) by naturally integrating relevant keywords and using standard industry formatting.
+2. Ensure a Recruiter Opinion rating above 90 by focusing on high-impact results, action verbs, and quantified achievements (e.g., "Increased revenue by 20%").
+3. Elevate every past resume point provided in the text or attached PDF to perfectly match the target role.
+
+Please generate a professional resume structured strictly as JSON. No markdown backticks, just raw JSON.
+Include an 'analysis' object with 'atsScore', 'recruiterRating', and an array of 'recommendations' to further improve the candidate's chances (e.g., specific projects to add or certifications).
+
+JSON Format:
+{
+  "personal": { "fullName": "...", "title": "...", "email": "...", "phone": "...", "location": "...", "summary": "..." },
+  "experience": [ { "id": 1, "company": "...", "role": "...", "startDate": "...", "endDate": "...", "description": "..." } ],
+  "education": [ { "id": 1, "school": "...", "degree": "...", "year": "..." } ],
+  "skills": ["...", "..."],
+  "analysis": {
+    "atsScore": 95,
+    "recruiterRating": 92,
+    "recommendations": ["Add a certification in X", "Highlight project Y that involves Z"]
+  }
+}
+
+Provide ONLY the raw JSON object.`;
 
       const parts = [{ text: prompt }];
       if (aiForm.pdfBase64) {
@@ -79,6 +106,9 @@ function App() {
       }
 
       setResumeData(resumeOb);
+      if (resumeOb.analysis) {
+        setAnalysis(resumeOb.analysis);
+      }
       setShowAiModal(false);
     } catch (e) {
       alert("Error generating resume: " + e.message);
@@ -140,6 +170,26 @@ function App() {
             ✨ AI Builder
           </button>
         </header>
+
+        <div className="section-group" style={{ marginBottom: '1.5rem' }}>
+          <label>Select Template Style</label>
+          <select 
+            value={selectedTemplate} 
+            onChange={(e) => setSelectedTemplate(e.target.value)}
+            style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'white' }}
+          >
+            <option value="modern">Modern Professional (Default)</option>
+            <option value="minimal">Minimalist (Monochrome)</option>
+            <option value="ats-v1">ATS Friendly v1 (Standard)</option>
+            <option value="ats-v2">ATS Friendly v2 (Clean Text)</option>
+            <option value="elegant">Elegant Serif (Executive)</option>
+            <option value="creative">Creative (Bold Sidebar)</option>
+            <option value="technical">Technical (Monospace)</option>
+            <option value="compact">Compact (Detailed)</option>
+            <option value="bold">Bold Impact</option>
+            <option value="classic">Classic Academic</option>
+          </select>
+        </div>
 
         <nav className="step-nav">
           {steps.map((step, idx) => (
@@ -275,7 +325,28 @@ function App() {
 
       {/* Preview Pane (Right Sidebar) */}
       <main className="preview-pane">
-        <div className="resume-preview-container" id="resume-document">
+        <div style={{ marginBottom: '2rem', width: '210mm', transform: 'scale(0.9)' }}>
+          {analysis.atsScore > 0 && (
+            <div className="analysis-dashboard">
+              <div className="score-badge" style={{ background: analysis.atsScore >= 90 ? '#dcfce7' : '#fee2e2', color: analysis.atsScore >= 90 ? '#166534' : '#991b1b' }}>
+                ATS Score: {analysis.atsScore}%
+              </div>
+              <div className="score-badge" style={{ background: analysis.recruiterRating >= 90 ? '#dbefe2' : '#fef9c3', color: analysis.recruiterRating >= 90 ? '#065f46' : '#854d0e' }}>
+                Recruiter Rating: {analysis.recruiterRating}%
+              </div>
+              {analysis.recommendations.length > 0 && (
+                <div style={{ marginTop: '1rem', padding: '1rem', background: '#f1f5f9', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
+                  <strong>💡 Pro Tips to boost your score:</strong>
+                  <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
+                    {analysis.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className={`resume-preview-container template-${selectedTemplate}`} id="resume-document">
           <header style={{ borderBottom: '2px solid var(--primary)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
             <h1 style={{ margin: '0', fontSize: '2.5rem', color: 'var(--text-main)', textAlign: 'left' }}>{resumeData.personal.fullName || 'YOUR NAME'}</h1>
             <p style={{ fontSize: '1.1rem', fontWeight: '500', color: 'var(--primary)', marginTop: '0.25rem' }}>{resumeData.personal.title || 'Professional Title'}</p>
