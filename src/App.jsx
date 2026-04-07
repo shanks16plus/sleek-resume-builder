@@ -3,6 +3,9 @@ import './App.css'
 
 function App() {
   const [activeStep, setActiveStep] = useState(0)
+  const [showAiModal, setShowAiModal] = useState(false)
+  const [aiForm, setAiForm] = useState({ role: '', background: '', apiKey: '' })
+  const [isGenerating, setIsGenerating] = useState(false)
   const [resumeData, setResumeData] = useState({
     personal: { fullName: 'Shashank Bajoria', title: 'Senior Software Engineer', email: 'shashank@example.com', phone: '+1 234 567 890', location: 'San Francisco, CA', summary: 'Experienced software engineer with a passion for building scalable web applications and AI-driven solutions.' },
     experience: [
@@ -15,6 +18,58 @@ function App() {
   })
 
   const steps = ['Personal Info', 'Experience', 'Education', 'Skills']
+
+  const handleGenerateAi = async () => {
+    if (!aiForm.apiKey || !aiForm.role || !aiForm.background) {
+      alert("Please fill in all fields including the API Key.");
+      return;
+    }
+    setIsGenerating(true);
+    
+    try {
+      const prompt = `You are a professional resume writer. The user is applying for: "${aiForm.role}".\nTheir background is: "${aiForm.background}".\n\nPlease generate a professional resume structured strictly as JSON. No markdown backticks, just raw JSON.\nUse this format:\n{\n  "personal": { "fullName": "Their Name or Fake Name", "title": "Job Title", "email": "email@example.com", "phone": "123-456", "location": "City, ST", "summary": "A highly impactful professional summary..." },\n  "experience": [ { "id": 1, "company": "Company Name", "role": "Role", "startDate": "Mon YYYY", "endDate": "Mon YYYY", "description": "1. Improved x by y%\\n2. Developed z..." } ],\n  "education": [ { "id": 1, "school": "School Name", "degree": "Degree", "year": "YYYY" } ],\n  "skills": ["Skill1", "Skill2", "Skill3"]\n}\n\nFocus on strong action verbs and quantifying achievements where possible. Provide only the JSON object.`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${aiForm.apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7 }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('API Request failed. Please check your API key.');
+      }
+
+      const data = await response.json();
+      const textResp = data.candidates[0].content.parts[0].text;
+      
+      let cleanedJson = textResp;
+      if (textResp.includes('```json')) {
+        cleanedJson = textResp.split('```json')[1].split('```')[0].trim();
+      } else if (textResp.includes('```')) {
+        cleanedJson = textResp.split('```')[1].split('```')[0].trim();
+      }
+
+      const resumeOb = JSON.parse(cleanedJson);
+      
+      // Ensure unique IDs
+      if (resumeOb.experience) {
+        resumeOb.experience = resumeOb.experience.map((e, i) => ({...e, id: Date.now() + i}));
+      }
+      if (resumeOb.education) {
+        resumeOb.education = resumeOb.education.map((e, i) => ({...e, id: Date.now() + i + 100}));
+      }
+
+      setResumeData(resumeOb);
+      setShowAiModal(false);
+    } catch (e) {
+      alert("Error generating resume: " + e.message);
+    } finally {
+      setIsGenerating(false);
+    }
+  }
 
   const handleChange = (section, field, value, index = null) => {
     if (index !== null) {
@@ -60,9 +115,14 @@ function App() {
     <div className="app-layout">
       {/* Editor Pane (Left Sidebar) */}
       <aside className="editor-pane">
-        <header style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.75rem', color: 'var(--primary)' }}>SleekResume</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Build your story, one step at a time.</p>
+        <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 style={{ fontSize: '1.75rem', color: 'var(--primary)' }}>SleekResume</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Build your story, one step at a time.</p>
+          </div>
+          <button className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', background: 'linear-gradient(135deg, #8b5cf6, #d946ef)', border: 'none', boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)' }} onClick={() => setShowAiModal(true)}>
+            ✨ AI Builder
+          </button>
         </header>
 
         <nav className="step-nav">
@@ -251,6 +311,60 @@ function App() {
           </div>
         </div>
       </main>
+
+      {/* AI Modal Overlay */}
+      {showAiModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2 style={{ marginBottom: '0.5rem', color: 'var(--text-main)' }}>✨ AI Resume Magician</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+              Answer a few questions and let our AI craft your perfect resume in seconds.
+            </p>
+            
+            <div className="form-grid">
+              <div className="full-width">
+                <label>Target Job / Role</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Senior Frontend Engineer at TechCorp" 
+                  value={aiForm.role}
+                  onChange={e => setAiForm({...aiForm, role: e.target.value})}
+                />
+              </div>
+              <div className="full-width">
+                <label>Your Background & Key Achievements</label>
+                <textarea 
+                  rows="4" 
+                  placeholder="Briefly describe your previous roles, exact skills, or copy-paste your raw notes. We will organize it professionally."
+                  value={aiForm.background}
+                  onChange={e => setAiForm({...aiForm, background: e.target.value})}
+                />
+              </div>
+              <div className="full-width">
+                <label>Google Gemini API Key (Required, runs locally)</label>
+                <input 
+                  type="password" 
+                  placeholder="AIzaSy..."
+                  value={aiForm.apiKey}
+                  onChange={e => setAiForm({...aiForm, apiKey: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+              <button className="btn-outline" onClick={() => setShowAiModal(false)} style={{ flex: 1 }}>Cancel</button>
+              <button 
+                className="btn-primary" 
+                onClick={handleGenerateAi} 
+                disabled={isGenerating} 
+                style={{ flex: 2, justifyContent: 'center', background: 'linear-gradient(135deg, #8b5cf6, #d946ef)', border: 'none' }}
+              >
+                {isGenerating ? '✨ Generating Magically...' : '✨ Create Resume Magic'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
