@@ -132,13 +132,19 @@ label {
 
 select, input, textarea {
   background: rgba(255, 255, 255, 0.05);
-  color: white;
+  color: #ffffff;
   border: 1px solid var(--border-color);
+  font-weight: 500;
+}
+
+::placeholder {
+  color: rgba(255, 255, 255, 0.3);
 }
 
 select:focus, input:focus, textarea:focus {
   background: rgba(255, 255, 255, 0.1);
   border-color: var(--primary);
+  outline: none;
 }
 
 .remove-btn {
@@ -276,13 +282,15 @@ select:focus, input:focus, textarea:focus {
 }
 
 .modal-content {
-  background: white;
-  padding: 2.5rem;
+  background: #020617;
+  padding: 3rem;
   border-radius: var(--radius-lg);
-  width: 90%;
-  max-width: 600px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 95%;
+  max-width: 650px;
+  box-shadow: 0 0 100px rgba(0,0,0,0.8);
+  border: 1px solid rgba(255,255,255,0.1);
   animation: slideUp 0.3s ease-out;
+  color: white;
 }
 
 @keyframes fadeIn {
