@@ -7,6 +7,7 @@ function App() {
   const [aiForm, setAiForm] = useState({ 
     role: '', 
     background: '', 
+    pdfBase64: null,
     apiKey: 'AIzaSyBmARJywXgsbj8m0knGd7DXf5D-R56mExY'
   })
   const [isGenerating, setIsGenerating] = useState(false)
@@ -24,24 +25,31 @@ function App() {
   const steps = ['Personal Info', 'Experience', 'Education', 'Skills']
 
   const handleGenerateAi = async () => {
-    if (!aiForm.role || !aiForm.background) {
-      alert("Please fill in all fields.");
+    if (!aiForm.role || (!aiForm.background && !aiForm.pdfBase64)) {
+      alert("Please fill in the target role and either provide background notes or upload a PDF resume.");
       return;
     }
-    
-    // Save the key so the user doesn't have to keep entering it!
-    localStorage.setItem('sleek_resume_gemini_key', aiForm.apiKey);
     
     setIsGenerating(true);
     
     try {
-      const prompt = `You are a professional resume writer. The user is applying for: "${aiForm.role}".\nTheir background is: "${aiForm.background}".\n\nPlease generate a professional resume structured strictly as JSON. No markdown backticks, just raw JSON.\nUse this format:\n{\n  "personal": { "fullName": "Their Name or Fake Name", "title": "Job Title", "email": "email@example.com", "phone": "123-456", "location": "City, ST", "summary": "A highly impactful professional summary..." },\n  "experience": [ { "id": 1, "company": "Company Name", "role": "Role", "startDate": "Mon YYYY", "endDate": "Mon YYYY", "description": "1. Improved x by y%\\n2. Developed z..." } ],\n  "education": [ { "id": 1, "school": "School Name", "degree": "Degree", "year": "YYYY" } ],\n  "skills": ["Skill1", "Skill2", "Skill3"]\n}\n\nFocus on strong action verbs and quantifying achievements where possible. Provide only the JSON object.`;
+      const prompt = `You are a professional resume writer perfectly elevating candidates for their target role. The user is applying for: "${aiForm.role}".\nTheir rough background notes are: "${aiForm.background}".\n\nIf they have attached a PDF resume document as part of this request, read it meticulously. Elevate their past resume points to perfectly match the target role, using strong action verbs and quantifying achievements.\nPlease generate a professional resume structured strictly as JSON. No markdown backticks, just raw JSON.\nUse this format:\n{\n  "personal": { "fullName": "Their Name or Fake Name", "title": "Job Title", "email": "email@example.com", "phone": "123-456", "location": "City, ST", "summary": "A highly impactful professional summary..." },\n  "experience": [ { "id": 1, "company": "Company Name", "role": "Role", "startDate": "Mon YYYY", "endDate": "Mon YYYY", "description": "1. Improved x by y%\\n2. Developed z..." } ],\n  "education": [ { "id": 1, "school": "School Name", "degree": "Degree", "year": "YYYY" } ],\n  "skills": ["Skill1", "Skill2", "Skill3"]\n}\n\nProvide only the perfectly structured JSON object.`;
+
+      const parts = [{ text: prompt }];
+      if (aiForm.pdfBase64) {
+        parts.push({
+          inlineData: {
+            mimeType: "application/pdf",
+            data: aiForm.pdfBase64
+          }
+        });
+      }
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${aiForm.apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ parts }],
           generationConfig: { temperature: 0.7 }
         })
       });
@@ -340,10 +348,34 @@ function App() {
                 />
               </div>
               <div className="full-width">
-                <label>Your Background & Key Achievements</label>
+                <label>Upload Past Resume (PDF) - Evaluates & Elevates for the new Role!</label>
+                <input 
+                  type="file" 
+                  accept=".pdf"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.readAsDataURL(file);
+                      reader.onload = () => {
+                        const base64Data = reader.result.split(',')[1];
+                        setAiForm(prev => ({...prev, pdfBase64: base64Data}));
+                      };
+                    } else {
+                      setAiForm(prev => ({...prev, pdfBase64: null}));
+                    }
+                  }}
+                  style={{ padding: '0.65rem', border: '2px dashed var(--primary)', background: '#f8fafc', cursor: 'pointer' }}
+                />
+              </div>
+              <div className="full-width">
+                <label style={{ textAlign: 'center', opacity: 0.5, letterSpacing: '2px', fontSize: '0.75rem' }}>OR / AND</label>
+              </div>
+              <div className="full-width">
+                <label>Add Extra Notes (Optional)</label>
                 <textarea 
-                  rows="4" 
-                  placeholder="Briefly describe your previous roles, exact skills, or copy-paste your raw notes. We will organize it professionally."
+                  rows="3" 
+                  placeholder="Briefly describe extra roles or raw notes you want the AI to include, if any."
                   value={aiForm.background}
                   onChange={e => setAiForm({...aiForm, background: e.target.value})}
                 />
