@@ -4,7 +4,11 @@ import './App.css'
 function App() {
   const [activeStep, setActiveStep] = useState(0)
   const [showAiModal, setShowAiModal] = useState(false)
-  const [aiForm, setAiForm] = useState({ role: '', background: '', apiKey: '' })
+  const [aiForm, setAiForm] = useState({ 
+    role: '', 
+    background: '', 
+    apiKey: typeof window !== 'undefined' ? (localStorage.getItem('sleek_resume_gemini_key') || '') : '' 
+  })
   const [isGenerating, setIsGenerating] = useState(false)
   const [resumeData, setResumeData] = useState({
     personal: { fullName: 'Shashank Bajoria', title: 'Senior Software Engineer', email: 'shashank@example.com', phone: '+1 234 567 890', location: 'San Francisco, CA', summary: 'Experienced software engineer with a passion for building scalable web applications and AI-driven solutions.' },
@@ -24,6 +28,10 @@ function App() {
       alert("Please fill in all fields including the API Key.");
       return;
     }
+    
+    // Save the key so the user doesn't have to keep entering it!
+    localStorage.setItem('sleek_resume_gemini_key', aiForm.apiKey);
+    
     setIsGenerating(true);
     
     try {
