@@ -7,7 +7,7 @@ function App() {
   const [aiForm, setAiForm] = useState({ 
     role: '', 
     background: '', 
-    apiKey: typeof window !== 'undefined' ? (localStorage.getItem('sleek_resume_gemini_key') || '') : '' 
+    apiKey: 'AIzaSyBmARJywXgsbj8m0knGd7DXf5D-R56mExY'
   })
   const [isGenerating, setIsGenerating] = useState(false)
   const [resumeData, setResumeData] = useState({
