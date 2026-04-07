@@ -21,16 +21,17 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  const [resumeData, setResumeData] = useState({
-    personal: { fullName: 'Shashank Bajoria', title: 'Senior Software Engineer', email: 'shashank@example.com', phone: '+1 234 567 890', location: 'San Francisco, CA', summary: 'Experienced software engineer with a passion for building scalable web applications and AI-driven solutions.' },
-    experience: [
-      { id: 1, company: 'Google', role: 'Full Stack Developer', startDate: 'Jan 2021', endDate: 'Present', description: 'Developed core features for the NextGen cloud platform. Optimized database queries reducing latency by 30%.' }
-    ],
-    education: [
-      { id: 1, school: 'Stanford University', degree: 'MS in Computer Science', year: '2020' }
-    ],
-    skills: ['React', 'Node.js', 'Python', 'AWS', 'System Design']
+  const [resumeVersions, setResumeVersions] = useState({
+    modern: { 
+      personal: { fullName: 'Shashank Bajoria', title: 'Senior Software Engineer', email: 'shashank@example.com', phone: '+1 234 567 890', location: 'San Francisco, CA', summary: 'Experienced software engineer with a passion for building scalable web applications and AI-driven solutions.' },
+      experience: [ { id: 1, company: 'Google', role: 'Full Stack Developer', startDate: 'Jan 2021', endDate: 'Present', description: 'Developed core features for the NextGen cloud platform.' } ],
+      education: [ { id: 1, school: 'Stanford University', degree: 'MS in Computer Science', year: '2020' } ],
+      skills: ['React', 'Node.js', 'Python']
+    }
   })
+
+  // Helper to get active data
+  const resumeData = resumeVersions[selectedTemplate] || resumeVersions['modern'] || Object.values(resumeVersions)[0];
 
   const steps = ['Personal Info', 'Experience', 'Education', 'Skills']
 
@@ -43,32 +44,34 @@ function App() {
     setIsGenerating(true);
     
     try {
-      const prompt = `You are a world-class executive resume writer and ATS optimization expert. 
-Using the provided information on job description ("${aiForm.role}") and candidate background ("${aiForm.background}"), 
-modify the resume based on the top 10 resumes that successfully secured roles at major Fortune 500 companies in this field.
+      const prompt = `You are a world-class executive resume writer. 
+The user is applying for: "${aiForm.role}". 
+Background: "${aiForm.background}".
 
-CRITICAL OBJECTIVES:
-1. Create a resume that has a High ATS score (above 90) by naturally integrating relevant keywords and using standard industry formatting.
-2. Ensure a Recruiter Opinion rating above 90 by focusing on high-impact results, action verbs, and quantified achievements (e.g., "Increased revenue by 20%").
-3. Elevate every past resume point provided in the text or attached PDF to perfectly match the target role.
+Please generate 10 DIFFERENT VERSIONS of the resume, each perfectly optimized for the following 10 styles: 
+modern, minimal, ats-v1, ats-v2, elegant, creative, technical, compact, bold, classic.
 
-Please generate a professional resume structured strictly as JSON. No markdown backticks, just raw JSON.
-Include an 'analysis' object with 'atsScore', 'recruiterRating', and an array of 'recommendations' to further improve the candidate's chances (e.g., specific projects to add or certifications).
+EACH version should have slight content adjustments (e.g., technical should focus more on tools, elegant on leadership results, ATS on keywords).
+
+Return a SINGLE JSON object where each key is the style name and the value is the resume object.
+Also include a TOP-LEVEL 'analysis' object for the CURRENT target role.
 
 JSON Format:
 {
-  "personal": { "fullName": "...", "title": "...", "email": "...", "phone": "...", "location": "...", "summary": "..." },
-  "experience": [ { "id": 1, "company": "...", "role": "...", "startDate": "...", "endDate": "...", "description": "..." } ],
-  "education": [ { "id": 1, "school": "...", "degree": "...", "year": "..." } ],
-  "skills": ["...", "..."],
-  "analysis": {
-    "atsScore": 95,
-    "recruiterRating": 92,
-    "recommendations": ["Add a certification in X", "Highlight project Y that involves Z"]
-  }
+  "modern": { "personal": {...}, "experience": [...], "education": [...], "skills": [...] },
+  "minimal": { ... },
+  "ats-v1": { ... },
+  "ats-v2": { ... },
+  "elegant": { ... },
+  "creative": { ... },
+  "technical": { ... },
+  "compact": { ... },
+  "bold": { ... },
+  "classic": { ... },
+  "analysis": { "atsScore": 95, "recruiterRating": 92, "recommendations": [...] }
 }
 
-Provide ONLY the raw JSON object.`;
+Provide ONLY the raw JSON object. Use valid JSON syntax.`;
 
       const parts = [{ text: prompt }];
       if (aiForm.pdfBase64) {
@@ -105,15 +108,19 @@ Provide ONLY the raw JSON object.`;
 
       const resumeOb = JSON.parse(cleanedJson);
       
-      // Ensure unique IDs
-      if (resumeOb.experience) {
-        resumeOb.experience = resumeOb.experience.map((e, i) => ({...e, id: Date.now() + i}));
-      }
-      if (resumeOb.education) {
-        resumeOb.education = resumeOb.education.map((e, i) => ({...e, id: Date.now() + i + 100}));
-      }
+      // Process each version to ensure unique IDs
+      Object.keys(resumeOb).forEach(key => {
+        if (key !== 'analysis') {
+          if (resumeOb[key].experience) {
+            resumeOb[key].experience = resumeOb[key].experience.map((e, i) => ({...e, id: Date.now() + i}));
+          }
+          if (resumeOb[key].education) {
+            resumeOb[key].education = resumeOb[key].education.map((e, i) => ({...e, id: Date.now() + i + 100}));
+          }
+        }
+      });
 
-      setResumeData(resumeOb);
+      setResumeVersions(resumeOb);
       if (resumeOb.analysis) {
         setAnalysis(resumeOb.analysis);
       }
@@ -126,43 +133,73 @@ Provide ONLY the raw JSON object.`;
   }
 
   const handleChange = (section, field, value, index = null) => {
+    const updatedVersions = { ...resumeVersions };
+    const currentData = { ...resumeData };
+
     if (index !== null) {
-      const newList = [...resumeData[section]]
-      newList[index][field] = value
-      setResumeData({ ...resumeData, [section]: newList })
+      const newList = [...currentData[section]];
+      newList[index][field] = value;
+      currentData[section] = newList;
     } else {
-      setResumeData({
-        ...resumeData,
-        [section]: { ...resumeData[section], [field]: value }
-      })
+      currentData[section] = { ...currentData[section], [field]: value };
     }
+    
+    // Update currently selected version
+    updatedVersions[selectedTemplate] = currentData;
+    setResumeVersions(updatedVersions);
   }
 
   const addItem = (section) => {
+    const updatedVersions = { ...resumeVersions };
+    const currentData = { ...resumeData };
     const defaultItems = {
       experience: { id: Date.now(), company: '', role: '', startDate: '', endDate: '', description: '' },
       education: { id: Date.now(), school: '', degree: '', year: '' }
-    }
-    setResumeData({ ...resumeData, [section]: [...resumeData[section], defaultItems[section]] })
+    };
+    currentData[section] = [...currentData[section], defaultItems[section]];
+    
+    updatedVersions[selectedTemplate] = currentData;
+    setResumeVersions(updatedVersions);
   }
 
   const removeItem = (section, index) => {
-    const newList = [...resumeData[section]]
-    newList.splice(index, 1)
-    setResumeData({ ...resumeData, [section]: newList })
+    const updatedVersions = { ...resumeVersions };
+    const currentData = { ...resumeData };
+    const newList = [...currentData[section]];
+    newList.splice(index, 1);
+    currentData[section] = newList;
+    
+    updatedVersions[selectedTemplate] = currentData;
+    setResumeVersions(updatedVersions);
   }
 
   const handleSkillChange = (index, value) => {
-    const newSkills = [...resumeData.skills]
-    newSkills[index] = value
-    setResumeData({ ...resumeData, skills: newSkills })
+    const updatedVersions = { ...resumeVersions };
+    const currentData = { ...resumeData };
+    const newSkills = [...currentData.skills];
+    newSkills[index] = value;
+    currentData.skills = newSkills;
+    
+    updatedVersions[selectedTemplate] = currentData;
+    setResumeVersions(updatedVersions);
   }
 
-  const addSkill = () => setResumeData({ ...resumeData, skills: [...resumeData.skills, ''] })
+  const addSkill = () => {
+    const updatedVersions = { ...resumeVersions };
+    const currentData = { ...resumeData };
+    currentData.skills = [...currentData.skills, ''];
+    updatedVersions[selectedTemplate] = currentData;
+    setResumeVersions(updatedVersions);
+  }
+
   const removeSkill = (index) => {
-    const newSkills = [...resumeData.skills]
-    newSkills.splice(index, 1)
-    setResumeData({ ...resumeData, skills: newSkills })
+    const updatedVersions = { ...resumeVersions };
+    const currentData = { ...resumeData };
+    const newSkills = [...currentData.skills];
+    newSkills.splice(index, 1);
+    currentData.skills = newSkills;
+    updatedVersions[selectedTemplate] = currentData;
+    setResumeVersions(updatedVersions);
   }
 
   if (isAppLoading) {
